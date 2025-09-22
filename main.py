@@ -9,7 +9,8 @@ import google.generativeai as genai
 import botanical_data as bd
 import config
 
-def run_identification_process(latitude, longitude, radius_km, taxon_name, specimen_notes, label_notes):
+# --- MODIFIED FUNCTION SIGNATURE ---
+def run_identification_process(latitude, longitude, radius_km, taxon_name, user_input):
     """The main workflow for the botanical identification tool."""
     # 1. Get species list from GBIF.
     scientific_names = bd.get_species_list_from_gbif(latitude, longitude, radius_km, taxon_name)
@@ -27,10 +28,9 @@ def run_identification_process(latitude, longitude, radius_km, taxon_name, speci
     # 2. Loop through each species to scrape its data.
     for name in scientific_names:
         print(f"\n{'='*60}\nProcessing: {name}\n{'='*60}")
+        # ... (scraping logic remains the same) ...
         description_found = False
         clean_name = " ".join(name.split()[:2])
-
-        # Attempt to scrape from e-Flora SA first.
         print("--- Attempting to scrape from e-Flora of South Africa (SANBI) ---")
         eflora_url = bd.find_eflorasa_url(clean_name)
         if eflora_url:
@@ -41,8 +41,6 @@ def run_identification_process(latitude, longitude, radius_km, taxon_name, speci
                 description_found = True
             else:
                 print(f"--> e-Flora SA scrape failed: {description}")
-
-        # If e-Flora failed, fall back to POWO.
         if not description_found:
             print("\n--> e-Flora SA data not found or failed. Trying POWO as a fallback...")
             taxon_id = bd.find_powo_taxon_id(clean_name)
@@ -56,13 +54,10 @@ def run_identification_process(latitude, longitude, radius_km, taxon_name, speci
                     description_found = True
                 else:
                     print(f"--> POWO scrape failed: {description}")
-
-        # If both sources failed, record the failure.
         if not description_found:
             reason = "No valid description found on e-Flora SA or POWO."
             print(f"--> FINAL RESULT: {reason}")
             species_data.append({'name': name, 'success': False, 'reason': reason})
-
         print("\n--> Processing complete for this species. Pausing for 2 seconds...")
         time.sleep(2)
 
@@ -76,12 +71,12 @@ def run_identification_process(latitude, longitude, radius_km, taxon_name, speci
         print("No species data was found or scraped for this query.")
         return None, None
 
-    analysis_result = bd.analyze_with_gemini(combined_descriptions, specimen_notes, label_notes, failed_species_list_str)
-    # We return both the analysis and the raw data for the report
+    # --- MODIFIED FUNCTION CALL ---
+    analysis_result = bd.analyze_with_gemini(combined_descriptions, user_input, failed_species_list_str)
     return analysis_result, combined_descriptions
 
 def generate_html_report(analysis_content, verbatim_data):
-    """Generates an HTML report from the analysis content and raw data."""
+    # ... (this function remains exactly the same) ...
     html_body = markdown.markdown(analysis_content, extensions=['tables'])
     appendix_html = ""
     if verbatim_data:
@@ -106,11 +101,9 @@ def generate_html_report(analysis_content, verbatim_data):
         f.write(html_template)
     return filename
 
-# This special block ensures the code inside only runs when you execute `python main.py`
 if __name__ == "__main__":
     # --- 1. Configure API Key ---
     try:
-        # The most secure way is to use an environment variable.
         api_key = os.environ.get('GOOGLE_API_KEY')
         if not api_key:
             raise ValueError("GOOGLE_API_KEY environment variable not set.")
@@ -119,21 +112,19 @@ if __name__ == "__main__":
     except (ValueError, KeyError) as e:
         print(f"Error: {e}")
         print("Please set the GOOGLE_API_KEY environment variable before running.")
-        exit() # Exit the script if the key is not found.
+        exit()
 
-    # --- 2. Get User Input ---
+    # --- 2. Get User Input (MODIFIED) ---
     print(f"\n{'='*60}\nSPECIMEN DATA ENTRY\n{'='*60}")
-    specimen_notes_input = input("Enter morphological observations: ")
-    label_notes_input = input("Enter any data from the label: ")
+    user_input_cli = input("Enter morphological description and locality details: ")
 
-    # --- 3. Run the main process ---
+    # --- 3. Run the main process (MODIFIED) ---
     analysis, raw_data = run_identification_process(
         latitude=config.DEFAULT_LATITUDE,
         longitude=config.DEFAULT_LONGITUDE,
         radius_km=config.DEFAULT_RADIUS_KM,
         taxon_name=config.DEFAULT_TAXON_NAME,
-        specimen_notes=specimen_notes_input,
-        label_notes=label_notes_input
+        user_input=user_input_cli
     )
 
     # --- 4. Generate and save the report ---

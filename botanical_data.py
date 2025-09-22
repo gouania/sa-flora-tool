@@ -13,7 +13,8 @@ from functools import wraps
 # Import constants from your config file
 from config import HEADERS, MODEL_NAME
 
-# --- Decorators and Helper Functions ---
+# (All other functions like retry_request, get_species_list_from_gbif, etc., remain exactly the same)
+# ...
 def retry_request(max_attempts=3, delay=2):
     """Decorator to retry a function if a requests.RequestException occurs."""
     def decorator(func):
@@ -33,7 +34,6 @@ def retry_request(max_attempts=3, delay=2):
         return wrapper
     return decorator
 
-# --- GBIF Functions ---
 def get_species_list_from_gbif(latitude, longitude, radius_km, taxon_name):
     """Queries GBIF for a list of species within a given radius of a coordinate."""
     print(f"Querying GBIF for '{taxon_name}' species within {radius_km}km of ({latitude}, {longitude})...")
@@ -67,7 +67,6 @@ def get_species_list_from_gbif(latitude, longitude, radius_km, taxon_name):
         print(f"--> An error occurred during the GBIF occurrence search: {e}")
         return []
 
-# --- POWO Scraping Functions ---
 @retry_request()
 def find_powo_taxon_id(scientific_name):
     """Finds the POWO taxon ID for a given scientific name."""
@@ -129,7 +128,6 @@ def scrape_powo_description_from_html(url):
         return (False, "No morphological description found on POWO.")
     return (True, "\n".join(all_descriptions_text))
 
-# --- e-Flora SA Scraping Functions ---
 @retry_request()
 def find_eflorasa_url(scientific_name):
     """Searches SANBI's internal API to find the e-Flora SA URL for a species."""
@@ -186,23 +184,21 @@ def scrape_eflorasa_description(url):
 
     return (False, "e-Flora SA page found, but no relevant description sections could be parsed.")
 
-# --- Gemini AI Analysis ---
-def analyze_with_gemini(scraped_descriptions, specimen_details, label_data, failed_species_list):
-    """Uses the Gemini model to analyze scraped data and specimen notes."""
+# --- Gemini AI Analysis (MODIFIED) ---
+def analyze_with_gemini(scraped_descriptions, user_input, failed_species_list):
+    """Uses the Gemini model to analyze scraped data and a unified user input."""
     print("\nAnalyzing with Gemini...")
     prompt = f"""
     You are an expert botanist and taxonomist. Your task is to compare provided descriptions with observations from a herbarium specimen.
+
     **Collected Botanical Descriptions:**
     {scraped_descriptions if scraped_descriptions else "No descriptions were successfully scraped."}
     ---
     **Species Found on GBIF but Lacking a Scraped Description:**
     {failed_species_list if failed_species_list else "None"}
     ---
-    **Specimen Observations:**
-    {specimen_details if specimen_details else "No specific specimen observations provided."}
-    ---
-    **Specimen Label Data:**
-    {label_data if label_data else "No specific label data provided."}
+    **User-Provided Specimen Details (Morphology & Locality):**
+    {user_input if user_input else "No specific specimen details were provided."}
     ---
     **Your Task:**
     Provide your analysis with the following markdown headings:
@@ -220,7 +216,6 @@ def analyze_with_gemini(scraped_descriptions, specimen_details, label_data, fail
     try:
         model = genai.GenerativeModel(MODEL_NAME)
         response = model.generate_content(prompt)
-        # Handle cases where the response might be empty or blocked
         if not response.parts:
             return "Analysis was blocked by the safety filter or returned no content."
         return response.text
