@@ -1,0 +1,9 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Generated files
+taxonomic_analysis.html
+
+# VS Code settings
+.vscode/
