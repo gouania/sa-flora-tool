@@ -1,4 +1,4 @@
-# app.py (Robust Version for Both Local & Cloud)
+# app.py (Local Development Version)
 
 import streamlit as st
 import folium
@@ -6,28 +6,31 @@ from streamlit_folium import st_folium
 import main
 import config
 import google.generativeai as genai
-import os
+import os # Import the 'os' library to read environment variables
 
 # --- Page Configuration ---
-st.set_page_config(page_title="SA Flora ID Assistant", page_icon="🌿", layout="wide")
+st.set_page_config(
+    page_title="SA Flora ID Assistant",
+    page_icon="🌿",
+    layout="wide"
+)
 
-# --- API Key Configuration (Robust Hybrid Approach) ---
-api_key = None
-if "GOOGLE_API_KEY" in st.secrets:
-    api_key = st.secrets["GOOGLE_API_KEY"]
-else:
-    api_key = os.environ.get("GOOGLE_API_KEY")
+# --- API Key Configuration (Local Only) ---
+# This code looks ONLY for the local environment variable you set on your PC.
+# It will not crash because it never mentions st.secrets.
+api_key = os.environ.get("GOOGLE_API_KEY")
 
 if api_key:
     genai.configure(api_key=api_key)
 else:
-    st.error("Google API Key not found.")
+    st.error("Google API Key not found. Please ensure you have set the GOOGLE_API_KEY environment variable on your local machine.")
     st.stop()
 
 # --- App Title and Description ---
 st.title("🌿 Botanical Identification Assistant")
 st.markdown("An AI-powered tool for identifying plants of the Southern African flora.")
 
+# (The rest of the file is exactly the same as before...)
 # --- Session State Initialization ---
 if "center" not in st.session_state:
     st.session_state.center = [-29.0, 24.0]
