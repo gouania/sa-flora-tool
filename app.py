@@ -1,4 +1,4 @@
-# app.py
+# app.py (Robust Version for Both Local & Cloud)
 
 import streamlit as st
 import folium
@@ -6,24 +6,23 @@ from streamlit_folium import st_folium
 import main
 import config
 import google.generativeai as genai
+import os
 
 # --- Page Configuration ---
-st.set_page_config(
-    page_title="SA Flora ID Assistant",
-    page_icon="🌿",
-    layout="wide"
-)
+st.set_page_config(page_title="SA Flora ID Assistant", page_icon="🌿", layout="wide")
 
-# --- API Key Configuration ---
-# This is the new, secure way to handle the API key.
-# It tries to get the key from Streamlit's secrets manager.
-try:
+# --- API Key Configuration (Robust Hybrid Approach) ---
+api_key = None
+if "GOOGLE_API_KEY" in st.secrets:
     api_key = st.secrets["GOOGLE_API_KEY"]
+else:
+    api_key = os.environ.get("GOOGLE_API_KEY")
+
+if api_key:
     genai.configure(api_key=api_key)
-    st.sidebar.success("Google API Key configured successfully!", icon="✅")
-except (KeyError, FileNotFoundError):
-    st.error("Google API Key not found. Please set it in your Streamlit Cloud secrets.")
-    st.stop() # Stop the app if the key is not found
+else:
+    st.error("Google API Key not found.")
+    st.stop()
 
 # --- App Title and Description ---
 st.title("🌿 Botanical Identification Assistant")
@@ -94,11 +93,11 @@ if submit_button:
         else:
             st.error("Analysis could not be completed. Please check the terminal for error messages.")
 
-# --- NEW: About and Disclaimer Section ---
+# --- About and Disclaimer Section ---
 st.sidebar.title("About This Tool")
 st.sidebar.info(
     """
-    This tool was created by Daniel Cahen, a botanist at RBG Kew, to identify Millennium Seed Bank Partnership voucher specimens, and to assist the Southern African botanical community. 
+    This tool was created by a plant taxonomist at RBG Kew to assist the Southern African botanical community. 
     It automates the process of generating a species list for a specific location and comparing a specimen's features against scraped morphological data.
 
     **Data Sources:**
@@ -106,8 +105,8 @@ st.sidebar.info(
     - **Descriptions:** Prioritizes e-Flora of South Africa (SANBI), with Plants of the World Online (POWO) as a fallback.
 
     **Disclaimer:**
-    This is an AI-assisted tool using Gemini 2.5 Flash and is not a substitute for expert taxonomic identification. The analysis is based on publicly available data and may contain inaccuracies. Always verify results with authoritative floras and expert opinion.
+    This is an AI-assisted tool and is not a substitute for expert taxonomic identification. The analysis is based on publicly available data and may contain inaccuracies. Always verify results with authoritative floras and expert opinion.
     """
 )
 st.sidebar.markdown("---")
-st.sidebar.markdown("View the code on [GitHub](https://github.com/gouania/sa-flora-tool)") 
+st.sidebar.markdown("View the code on [GitHub](https://github.com/gouania/sa-flora-tool)")
